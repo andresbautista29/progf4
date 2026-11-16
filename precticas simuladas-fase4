@@ -71,4 +71,63 @@ class Entidad(ABC):
         return self.describir()
 
 
+# ---------------------------------------------------------------
+# Cliente
+# ---------------------------------------------------------------
+class Cliente(Entidad):
+    def __init__(self, nombre=None, documento=None, email=None, telefono=None):
+        super().__init__()
+        # atributos privados (encapsulación)
+        self.__nombre = None
+        self.__documento = None
+        self.__email = None
+        self.__telefono = None
+        # se asignan con los setters para que se validen
+        self.set_nombre(nombre)
+        self.set_documento(documento)
+        self.set_email(email)
+        self.set_telefono(telefono)
 
+    def get_nombre(self):
+        return self.__nombre
+
+    def get_documento(self):
+        return self.__documento
+
+    def get_email(self):
+        return self.__email
+
+    def get_telefono(self):
+        return self.__telefono
+
+    def set_nombre(self, nombre):
+        if nombre is None or nombre.strip() == "":
+            raise ClienteInvalidoError("Falta el nombre del cliente")
+        if len(nombre.strip()) < 3 or any(c.isdigit() for c in nombre):
+            raise ClienteInvalidoError(f"Nombre no válido: {nombre}")
+        self.__nombre = nombre.strip()
+
+    def set_documento(self, documento):
+        if documento is None or str(documento).strip() == "":
+            raise ClienteInvalidoError("Falta el documento del cliente")
+        documento = str(documento).strip()
+        if not documento.isdigit() or len(documento) < 6 or len(documento) > 12:
+            raise ClienteInvalidoError(
+                f"Documento no válido: {documento} (deben ser entre 6 y 12 números)")
+        self.__documento = documento
+
+    def set_email(self, email):
+        # validación sencilla: debe tener @ y un punto después del @
+        if email is None or "@" not in email or "." not in email.split("@")[-1]:
+            raise ClienteInvalidoError(f"Correo no válido: {email}")
+        self.__email = email.strip().lower()
+
+    def set_telefono(self, telefono):
+        if telefono is None or not str(telefono).isdigit() or len(str(telefono)) != 10:
+            raise ClienteInvalidoError(
+                f"Teléfono no válido: {telefono} (deben ser 10 números)")
+        self.__telefono = str(telefono)
+
+    def describir(self):
+        return (f"Cliente {self._id}: {self.__nombre} | Doc: {self.__documento} | "
+                f"{self.__email} | Tel: {self.__telefono}")
