@@ -337,3 +337,78 @@ class Reserva(Entidad):
         return (f"Reserva {self._id} | {self._cliente.get_nombre()} -> "
                 f"{self._servicio.get_nombre()} | {self._horas} h | "
                 f"{self._estado} | {costo}")
+
+
+    # ---------------------------------------------------------------
+# Sistema: maneja las listas internas y atrapa los errores para que
+# el programa nunca se caiga
+# ---------------------------------------------------------------
+class SistemaGestion:
+    def __init__(self):
+        self.clientes = []
+        self.servicios = []
+        self.reservas = []
+
+    def registrar_cliente(self, **datos):
+        try:
+            cliente = Cliente(**datos)
+            for c in self.clientes:
+                if c.get_documento() == cliente.get_documento():
+                    raise ClienteInvalidoError(
+                        f"Ya hay un cliente con el documento {cliente.get_documento()}")
+        except ClienteInvalidoError as e:
+            logging.error(f"No se pudo registrar el cliente: {e}")
+            print(f"   X Error de cliente: {e}")
+            return None
+        except TypeError as e:
+            logging.error(f"Parámetros incorrectos al registrar cliente: {e}")
+            print(f"   X Error de parámetros: {e}")
+            return None
+        else:
+            self.clientes.append(cliente)
+            logging.info(f"Cliente registrado: {cliente.get_nombre()}")
+            print(f"   OK {cliente}")
+            return cliente
+
+    def crear_servicio(self, clase, *args):
+        try:
+            servicio = clase(*args)
+        except (ServicioInvalidoError, TypeError) as e:
+            logging.error(f"No se pudo crear el servicio {clase.__name__}: {e}")
+            print(f"   X Error de servicio: {e}")
+            return None
+        else:
+            self.servicios.append(servicio)
+            logging.info(f"Servicio creado: {servicio.get_nombre()}")
+            print(f"   OK {servicio}")
+            return servicio
+
+    def crear_reserva(self, cliente, servicio, horas, impuesto=Servicio.IVA, descuento=0):
+        reserva = None
+        try:
+            reserva = Reserva(cliente, servicio, horas)
+            self.reservas.append(reserva)
+            reserva.confirmar()
+            reserva.procesar(impuesto, descuento)
+        except ErrorSoftwareFJ as e:
+            causa = ""
+            if e.__cause__ is not None:
+                causa = f" (causa: {e.__cause__})"
+            logging.error(f"Reserva fallida: {e}{causa}")
+            print(f"   X Error de reserva: {e}{causa}")
+        except Exception as e:
+            # por si pasa algo que no esperábamos
+            logging.error(f"Error inesperado: {e}")
+            print(f"   X Error inesperado: {e}")
+        else:
+            print(f"   OK {reserva}")
+        finally:
+            logging.info("Terminó la operación de reserva")
+        return reserva
+
+    def mostrar_resumen(self):
+        print("\n===== RESUMEN =====")
+        print(f"Clientes: {len(self.clientes)} | Servicios: {len(self.servicios)} "
+              f"| Reservas: {len(self.reservas)}")
+        for r in self.reservas:
+            print("  ", r)
