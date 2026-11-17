@@ -263,3 +263,77 @@ class AsesoriaEspecializada(Servicio):
     def describir(self):
         return (f"[Asesoría] {self._nombre} | {self._especialidad} ({self._nivel}) | "
                 f"${self._tarifa_hora:,.0f} por hora")
+
+
+# ---------------------------------------------------------------
+# Reserva
+# ---------------------------------------------------------------
+class Reserva(Entidad):
+    def __init__(self, cliente, servicio, horas):
+        super().__init__()
+        if not isinstance(cliente, Cliente):
+            raise ReservaInvalidaError("La reserva necesita un cliente válido")
+        if not isinstance(servicio, Servicio):
+            raise ReservaInvalidaError("La reserva necesita un servicio válido")
+        if not servicio.esta_disponible():
+            raise ServicioNoDisponibleError(
+                f"El servicio '{servicio.get_nombre()}' no está disponible")
+
+        # si los parámetros no sirven, lanzamos otra excepción pero dejamos
+        # la original como causa (encadenamiento con "from")
+        try:
+            servicio.validar_parametros(horas)
+        except ServicioInvalidoError as e:
+            raise ReservaInvalidaError("No se pudo crear la reserva") from e
+
+        self._cliente = cliente
+        self._servicio = servicio
+        self._horas = horas
+        self._estado = "PENDIENTE"
+        self._costo = None
+
+    def get_estado(self):
+        return self._estado
+
+    def confirmar(self):
+        if self._estado != "PENDIENTE":
+            raise OperacionNoPermitidaError(
+                f"Reserva {self._id}: no se puede confirmar, está {self._estado}")
+        self._estado = "CONFIRMADA"
+        logging.info(f"Reserva {self._id} confirmada")
+
+    def cancelar(self):
+        if self._estado == "CANCELADA" or self._estado == "PROCESADA":
+            raise OperacionNoPermitidaError(
+                f"Reserva {self._id}: no se puede cancelar, está {self._estado}")
+        self._estado = "CANCELADA"
+        logging.info(f"Reserva {self._id} cancelada")
+
+    def procesar(self, impuesto=Servicio.IVA, descuento=0):
+        try:
+            if self._estado != "CONFIRMADA":
+                raise OperacionNoPermitidaError(
+                    f"Reserva {self._id}: debe estar CONFIRMADA para procesarse "
+                    f"(está {self._estado})")
+            total = self._servicio.calcular_costo_total(self._horas, impuesto, descuento)
+        except CalculoInconsistenteError as e:
+            raise ReservaInvalidaError(
+                f"Reserva {self._id}: error calculando el costo") from e
+        else:
+            # esto solo se ejecuta si no hubo errores
+            self._costo = total
+            self._estado = "PROCESADA"
+            logging.info(f"Reserva {self._id} procesada, total ${total:,.2f}")
+            return total
+        finally:
+            # esto se ejecuta siempre
+            logging.info(f"Terminó el intento de procesar la reserva {self._id}")
+
+    def describir(self):
+        if self._costo is not None:
+            costo = f"${self._costo:,.2f}"
+        else:
+            costo = "sin calcular"
+        return (f"Reserva {self._id} | {self._cliente.get_nombre()} -> "
+                f"{self._servicio.get_nombre()} | {self._horas} h | "
+                f"{self._estado} | {costo}")
