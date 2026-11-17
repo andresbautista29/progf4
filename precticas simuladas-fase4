@@ -131,3 +131,61 @@ class Cliente(Entidad):
     def describir(self):
         return (f"Cliente {self._id}: {self.__nombre} | Doc: {self.__documento} | "
                 f"{self.__email} | Tel: {self.__telefono}")
+    
+
+# ---------------------------------------------------------------
+# Servicio (clase abstracta)
+# ---------------------------------------------------------------
+class Servicio(Entidad, ABC):
+    IVA = 0.19
+
+    def __init__(self, nombre, tarifa_hora):
+        super().__init__()
+        if nombre is None or str(nombre).strip() == "":
+            raise ServicioInvalidoError("El servicio necesita un nombre")
+        if not isinstance(tarifa_hora, (int, float)) or tarifa_hora <= 0:
+            raise ServicioInvalidoError(f"Tarifa no válida: {tarifa_hora}")
+        self._nombre = str(nombre).strip()
+        self._tarifa_hora = tarifa_hora
+        self._disponible = True
+
+    def get_nombre(self):
+        return self._nombre
+
+    def esta_disponible(self):
+        return self._disponible
+
+    def set_disponible(self, valor):
+        self._disponible = bool(valor)
+
+    # Estos tres los sobrescribe cada servicio hijo (polimorfismo)
+    @abstractmethod
+    def calcular_costo(self, horas):
+        pass
+
+    @abstractmethod
+    def validar_parametros(self, horas):
+        pass
+
+    # Python no tiene sobrecarga como Java, entonces se hace con
+    # parámetros opcionales. Se puede llamar de varias formas:
+    #   calcular_costo_total(3)
+    #   calcular_costo_total(3, impuesto=0.19)
+    #   calcular_costo_total(3, descuento=0.10)
+    #   calcular_costo_total(3, 0.19, 0.10)
+    def calcular_costo_total(self, horas, impuesto=None, descuento=0):
+        self.validar_parametros(horas)
+
+        if descuento < 0 or descuento >= 1:
+            raise CalculoInconsistenteError(f"Descuento fuera de rango: {descuento}")
+        if impuesto is not None and (impuesto < 0 or impuesto > 1):
+            raise CalculoInconsistenteError(f"Impuesto fuera de rango: {impuesto}")
+
+        total = self.calcular_costo(horas)
+        total = total - total * descuento
+        if impuesto:
+            total = total + total * impuesto
+
+        if total < 0:
+            raise CalculoInconsistenteError("El costo dio negativo")
+        return round(total, 2)
