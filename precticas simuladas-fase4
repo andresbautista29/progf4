@@ -189,3 +189,77 @@ class Servicio(Entidad, ABC):
         if total < 0:
             raise CalculoInconsistenteError("El costo dio negativo")
         return round(total, 2)
+
+
+# ---------------------------------------------------------------
+# Servicios especializados
+# ---------------------------------------------------------------
+class ReservaSala(Servicio):
+    def __init__(self, nombre, tarifa_hora, capacidad):
+        super().__init__(nombre, tarifa_hora)
+        if not isinstance(capacidad, int) or capacidad <= 0:
+            raise ServicioInvalidoError(f"Capacidad no válida: {capacidad}")
+        self._capacidad = capacidad
+
+    def validar_parametros(self, horas):
+        if not isinstance(horas, (int, float)) or horas < 1 or horas > 8:
+            raise ServicioInvalidoError(
+                f"La sala '{self._nombre}' se reserva entre 1 y 8 horas (se pidió {horas})")
+
+    def calcular_costo(self, horas):
+        costo = self._tarifa_hora * horas
+        if self._capacidad > 20:  # las salas grandes cuestan 10% más
+            costo = costo * 1.10
+        return costo
+
+    def describir(self):
+        return (f"[Sala] {self._nombre} | capacidad {self._capacidad} | "
+                f"${self._tarifa_hora:,.0f} por hora")
+
+
+class AlquilerEquipo(Servicio):
+    DEPOSITO = 50000
+
+    def __init__(self, nombre, tarifa_hora, tipo_equipo):
+        super().__init__(nombre, tarifa_hora)
+        if tipo_equipo is None or str(tipo_equipo).strip() == "":
+            raise ServicioInvalidoError("Falta el tipo de equipo")
+        self._tipo_equipo = tipo_equipo
+
+    def validar_parametros(self, horas):
+        if not isinstance(horas, (int, float)) or horas < 1 or horas > 72:
+            raise ServicioInvalidoError(
+                f"El equipo '{self._nombre}' se alquila entre 1 y 72 horas (se pidió {horas})")
+
+    def calcular_costo(self, horas):
+        return self._tarifa_hora * horas + self.DEPOSITO
+
+    def describir(self):
+        return (f"[Equipo] {self._nombre} ({self._tipo_equipo}) | "
+                f"${self._tarifa_hora:,.0f} por hora + depósito de ${self.DEPOSITO:,.0f}")
+
+
+class AsesoriaEspecializada(Servicio):
+    # cuánto se multiplica la tarifa según el nivel del asesor
+    NIVELES = {"junior": 1.0, "senior": 1.5, "experto": 2.0}
+
+    def __init__(self, nombre, tarifa_hora, especialidad, nivel="junior"):
+        super().__init__(nombre, tarifa_hora)
+        if especialidad is None or str(especialidad).strip() == "":
+            raise ServicioInvalidoError("Falta la especialidad")
+        if nivel not in self.NIVELES:
+            raise ServicioInvalidoError(f"Nivel no válido: {nivel}")
+        self._especialidad = especialidad
+        self._nivel = nivel
+
+    def validar_parametros(self, horas):
+        if not isinstance(horas, (int, float)) or horas < 0.5 or horas > 4:
+            raise ServicioInvalidoError(
+                f"La asesoría '{self._nombre}' dura entre 0.5 y 4 horas (se pidió {horas})")
+
+    def calcular_costo(self, horas):
+        return self._tarifa_hora * horas * self.NIVELES[self._nivel]
+
+    def describir(self):
+        return (f"[Asesoría] {self._nombre} | {self._especialidad} ({self._nivel}) | "
+                f"${self._tarifa_hora:,.0f} por hora")
