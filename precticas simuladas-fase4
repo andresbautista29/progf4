@@ -412,3 +412,6 @@ class SistemaGestion:
               f"| Reservas: {len(self.reservas)}")
         for r in self.reservas:
             print("  ", r)
+
+
+            
