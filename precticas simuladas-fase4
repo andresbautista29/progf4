@@ -414,4 +414,69 @@ class SistemaGestion:
             print("  ", r)
 
 
-            
+            # ---------------------------------------------------------------
+# Simulación de 12 operaciones
+# ---------------------------------------------------------------
+def main():
+    sistema = SistemaGestion()
+    print("===== SIMULACIÓN SOFTWARE FJ =====\n")
+
+    print("1) Registrar cliente válido")
+    ana = sistema.registrar_cliente(nombre="Ana Torres", documento="1020304050",
+                                    email="ana@correo.com", telefono="3001234567")
+
+    print("2) Registrar cliente con correo inválido")
+    sistema.registrar_cliente(nombre="Luis Pérez", documento="9988776655",
+                              email="luis-correo", telefono="3109876543")
+
+    print("3) Registrar cliente sin documento")
+    sistema.registrar_cliente(nombre="Marta Ruiz", email="marta@correo.com",
+                              telefono="3205554433")
+
+    print("4) Registrar otro cliente válido")
+    carlos = sistema.registrar_cliente(nombre="Carlos Gómez", documento="80123456",
+                                       email="carlos@correo.com", telefono="3151112233")
+
+    print("5) Crear sala válida")
+    sala = sistema.crear_servicio(ReservaSala, "Sala Innovación", 40000, 25)
+
+    print("6) Crear equipo válido")
+    equipo = sistema.crear_servicio(AlquilerEquipo, "Portátil Pro", 8000, "Portátil")
+
+    print("7) Crear asesoría con nivel inválido")
+    sistema.crear_servicio(AsesoriaEspecializada, "Asesoría IA", 90000, "IA", "maestro")
+    asesoria = sistema.crear_servicio(AsesoriaEspecializada, "Asesoría Datos", 90000,
+                                      "Ciencia de datos", "senior")
+
+    print("8) Reserva exitosa de sala (3 horas con IVA)")
+    sistema.crear_reserva(ana, sala, 3)
+
+    print("9) Reserva con duración inválida (12 horas en una sala)")
+    sistema.crear_reserva(carlos, sala, 12)
+
+    print("10) Reserva exitosa de equipo con 10% de descuento")
+    sistema.crear_reserva(carlos, equipo, 24, descuento=0.10)
+
+    print("11) Reserva de un servicio no disponible")
+    asesoria.set_disponible(False)
+    sistema.crear_reserva(ana, asesoria, 2)
+
+    print("12) Reserva con descuento inconsistente (150%)")
+    sistema.crear_reserva(ana, equipo, 5, descuento=1.5)
+
+    print("Extra) Cancelar la misma reserva dos veces")
+    reserva = Reserva(ana, sala, 2)
+    try:
+        reserva.cancelar()
+        reserva.cancelar()
+    except OperacionNoPermitidaError as e:
+        logging.error(str(e))
+        print(f"   X Error: {e}")
+
+    sistema.mostrar_resumen()
+    print("\nEl programa siguió funcionando aunque hubo errores. "
+          "Revisar el archivo software_fj.log")
+
+
+if __name__ == "__main__":
+    main()
